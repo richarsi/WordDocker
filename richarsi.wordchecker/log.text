@@ -1,0 +1,2 @@
+# run the flask app using the following
+flask --app richarsi.wordsearch.app run

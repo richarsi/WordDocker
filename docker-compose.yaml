@@ -1,0 +1,103 @@
+name: wordsearch
+
+services:
+  blackboard:
+    image: richarsi/richarsi.blackboard:slim-0.1
+    environment:
+      - MONGODB_CONNSTRING=mongodb://mongodb:27017/
+    build: 
+      context:  richarsi.blackboard
+      dockerfile: Dockerfile
+    networks:
+      - richarsi-network
+    depends_on:
+      - mongodb
+    deploy:
+      replicas: 1
+  workscheduler:
+    image: richarsi/richarsi.beehive.workscheduler:slim-0.1
+    environment:
+      - BLACKBOARD_HOST=blackboard
+      - BLACKBOARD_PORT=8000
+      - WORKSCHEDULER_POLLTIME=30
+      - WORKSCHEDULER_LOG_LEVEL=INFO
+    build: 
+      context:  richarsi.beehive
+      dockerfile: SchedulerDockerfile
+    networks:
+      - richarsi-network
+    depends_on:
+      - blackboard
+    deploy:
+      replicas: 1
+  workwatcher:
+    image: richarsi/richarsi.beehive.workwatcher:slim-0.1
+    environment:
+      - BLACKBOARD_HOST=blackboard
+      - BLACKBOARD_PORT=8000
+      - WORKWATCHER_POLLTIME=30
+      - WORKWATCHER_LOG_LEVEL=INFO
+    build: 
+      context:  richarsi.beehive
+      dockerfile: WatcherDockerfile
+    networks:
+      - richarsi-network
+    depends_on:
+      - blackboard
+    deploy:
+      replicas: 1
+  workconsumer:
+    image: richarsi/richarsi.beehive.workconsumer:slim-0.1
+    environment:
+      - BLACKBOARD_HOST=blackboard
+      - BLACKBOARD_PORT=8000
+      - WORDCHECKER_HOST=wordchecker
+      - WORDCHECKER_PORT=8000
+    build: 
+      context:  richarsi.beehive
+      dockerfile: ConsumerDockerfile
+    networks:
+      - richarsi-network
+    depends_on:
+      - blackboard
+      - wordchecker
+    deploy:
+      mode: replicated-job
+      replicas: 1
+  wordchecker:
+    image: richarsi/richarsi.wordchecker:slim-0.1
+    environment:
+      - WORDCHECKER_LOG_LEVEL=WARN
+    build: 
+      context:  richarsi.wordchecker
+      dockerfile: Dockerfile
+    networks:
+      - richarsi-network
+    deploy:
+      replicas: 3
+  mongodb:
+    image: mongodb/mongodb-community-server:7.0.6-ubuntu2204
+    networks:
+      - richarsi-network
+    # Couldn't get persistent volumes to work on Windows
+    # volumes:
+    #   - type: bind
+    #     source: ./data
+    #     target: ./data/db
+  website:
+    image: richarsi/richarsi.website:alpine-0.1
+    build:
+      context: richarsi.website
+      dockerfile: Dockerfile
+    ports:
+      - 8080:80
+    networks:
+      - richarsi-network
+    depends_on:
+      - blackboard
+    deploy:
+      replicas: 1
+
+networks:
+  richarsi-network:
+    driver: bridge

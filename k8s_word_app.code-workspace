@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "richarsi.blackboard"
+		},
+		{
+			"path": "richarsi.proxy"
+		},
+		{
+			"path": "richarsi.wordchecker"
+		},
+		{
+			"path": "richarsi.website"
+		},
+		{
+			"path": "k8s"
+		}
+	],
+	"settings": {}
+}
