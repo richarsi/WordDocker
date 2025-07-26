@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: workconsumer-cronjob
+spec:
+  schedule: "* * * * *" # Runs every minute
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          initContainers:
+          - name: wait-for-blackboard
+            image: busybox
+            command: ['sh', '-c', 'until nc -zv blackboard-service 8000; do echo "Waiting for blackboard service to start..."; sleep 2; done; echo "blackboard is up"']
+          - name: wait-for-wordchecker
+            image: busybox
+            command: ['sh', '-c', 'until nc -zv wordchecker-service 8000; do echo "Waiting for wordchecker service to start..."; sleep 2; done; echo "wordchecker is up"']
+          containers:
+            - name: workconsumer
+              image: richarsi/richarsi.beehive.workconsumer:slim-0.1
+              env:
+                - name: BLACKBOARD_HOST
+                  value: "blackboard-service"
+                - name: BLACKBOARD_PORT
+                  value: "8000"
+                - name: WORDCHECKER_HOST
+                  value: "wordchecker-service"
+                - name: WORDCHECKER_PORT
+                  value: "8000"
+          restartPolicy: OnFailure

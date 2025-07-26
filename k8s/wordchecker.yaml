@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordchecker-deployment
+  labels:
+    app: wordchecker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wordchecker
+  template:
+    metadata:
+      labels:
+        app: wordchecker
+    spec:
+      containers:
+      - name: wordchecker
+        image: richarsi/richarsi.wordchecker:slim-0.1
+        ports:
+        - containerPort: 8000  # Internal container port
+        env:
+        - name: WORDCHECKER_LOG_LEVEL
+          value: "WARN"  # Environment variable for log level
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordchecker-service
+  labels:
+    app: wordchecker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000  # Maps external port 8000 to internal container port 8000
+  selector:
+    app: wordchecker

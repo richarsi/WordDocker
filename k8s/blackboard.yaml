@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blackboard-deployment
+  labels:
+    app: blackboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blackboard
+  template:
+    metadata:
+      labels:
+        app: blackboard
+    spec:
+      initContainers:
+      - name: wait-for-mongodb
+        image: busybox
+        command: ['sh', '-c', 'until nc -zv mongodb-service 27017; do echo "Waiting for MongoDB..."; sleep 2; done; echo "MongoDB is up"']
+      containers:
+      - name: blackboard
+        image: richarsi/richarsi.blackboard:slim-0.1
+        ports:
+        - containerPort: 8000 
+        env:
+        - name: MONGODB_CONNSTRING
+          value: "mongodb://mongodb-service:27017/"
+        readinessProbe:
+              httpGet:
+                path: /healthcheck
+                port: 8000
+              initialDelaySeconds: 5
+              periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blackboard-service
+  labels:
+    app: blackboard
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+  selector:
+    app: blackboard

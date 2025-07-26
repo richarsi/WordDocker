@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workscheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workscheduler
+  template:
+    metadata:
+      labels:
+        app: workscheduler
+    spec:
+      initContainers:
+      - name: wait-for-blackboard
+        image: busybox
+        command: ['sh', '-c', 'until nc -zv blackboard-service 8000; do echo "Waiting for blackboard service to start..."; sleep 2; done; echo "blackboard is up"']
+      containers:
+        - name: workscheduler
+          image: richarsi/richarsi.beehive.workscheduler:slim-0.1
+          env:
+            - name: BLACKBOARD_HOST
+              value: "blackboard-service"
+            - name: BLACKBOARD_PORT
+              value: "8000"
+            - name: WORKSCHEDULER_POLLTIME
+              value: "30"
+            - name: WORKSCHEDULER_LOG_LEVEL
+              value: "INFO"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workscheduler-service
+spec:
+  selector:
+    app: workscheduler
+  clusterIP: None # This ensures it's only accessible internally and doesn't expose any ports

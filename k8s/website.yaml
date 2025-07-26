@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: website-deployment
+  labels:
+    app: website
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: website
+  template:
+    metadata:
+      labels:
+        app: website
+    spec:
+      initContainers:
+      - name: wait-for-blackboard
+        image: busybox
+        command: ['sh', '-c', 'until nc -zv blackboard-service 8000; do echo "Waiting for blackboard service to start..."; sleep 2; done; echo "blackboard is up"']
+      containers:
+      - name: website
+        image: richarsi/richarsi.website:alpine-0.2
+        ports:
+        - containerPort: 80  # Internal container port
+        env:
+        - name: BLACKBOARD_URL
+          value: "http://blackboard-service"  # URL to access the blackboard service
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: website-service
+  labels:
+    app: website
+spec:
+  type: LoadBalancer # Exposes the Service externally using an external load balancer
+  ports:
+  - port: 8080
+    targetPort: 80  # Maps external port 8080 to internal container port 80
+  selector:
+    app: website
