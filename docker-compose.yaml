@@ -85,7 +85,7 @@ services:
     #     source: ./data
     #     target: ./data/db
   website:
-    image: richarsi/richarsi.website:alpine-0.1
+    image: richarsi/richarsi.website:alpine-0.2
     build:
       context: richarsi.website
       dockerfile: Dockerfile
